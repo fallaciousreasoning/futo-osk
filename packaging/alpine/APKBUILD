@@ -1,0 +1,66 @@
+# Maintainer: Jay Harris <jay.harris@outlook.co.nz>
+pkgname=futo-osk
+pkgver=0.1.0
+pkgrel=2
+_futo_commit=7d61ab4132cfcbb7aa713190d934f0125dc38b03
+_resources_commit=d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd
+pkgdesc="Phosh on-screen keyboard with FUTO Keyboard's transformer prediction, autocorrect and swipe typing"
+url="https://github.com/futo-org/android-keyboard"
+arch="aarch64 x86_64"
+# FUTO's engine and model are under the FUTO Source First License:
+# non-commercial use and free distribution only.
+license="LicenseRef-FUTO-SFL-1.1-kb AND Apache-2.0 AND MIT"
+makedepends="
+	feedbackd-dev
+	gtk4-layer-shell-dev
+	gtk4.0-dev
+	libxkbcommon-dev
+	meson
+	wayland-dev
+	"
+# Takes over stevia's sm.puri.OSK0.desktop and mobi.phosh.OSK.service, so
+# phosh starts this keyboard instead.
+provides="phosh-keyboard phosh-osk-stub"
+replaces="stevia stevia-systemd"
+subpackages="$pkgname-systemd"
+# The typing test needs gtk4-broadwayd and a session bus.
+options="!check"
+source="$pkgname-$pkgver.tar.gz
+	futo-android-keyboard-$_futo_commit.tar.gz::https://github.com/futo-org/android-keyboard/archive/$_futo_commit.tar.gz
+	futo-resources-$_resources_commit.tar.gz::https://gitlab.futo.org/keyboard/keyboard-large-resources/-/archive/$_resources_commit/keyboard-large-resources-$_resources_commit.tar.gz
+	"
+
+prepare() {
+	default_prepare
+	mkdir -p futo
+	mv "$srcdir"/android-keyboard-$_futo_commit futo/android-keyboard
+	mv "$srcdir"/keyboard-large-resources-$_resources_commit futo/resources
+}
+
+build() {
+	abuild-meson \
+		-Dfuto_resources="$builddir"/futo/resources \
+		-Dlayer_shell=enabled \
+		-Dfeedback=enabled \
+		. output
+	meson compile -C output
+}
+
+package() {
+	DESTDIR="$pkgdir" meson install --no-rebuild -C output
+	install -Dm644 futo/android-keyboard/LICENSE.md \
+		"$pkgdir"/usr/share/licenses/$pkgname/FUTO-LICENSE.md
+}
+
+systemd() {
+	pkgdesc="$pkgdesc (systemd user unit)"
+	install_if="systemd $pkgname=$pkgver-r$pkgrel"
+	replaces="stevia-systemd"
+	amove usr/lib/systemd/user
+}
+
+sha512sums="
+SKIP  futo-osk-0.1.0.tar.gz
+5f73fa2698b2e0e1db93db0485a214c6fd3298a04f221012fa7b765f7f5a80e3d8c8d566e94fd4d8aa3e96d8eec8d0e5c301d2ede2f5ad92f3814568a7359fbc  futo-android-keyboard-7d61ab4132cfcbb7aa713190d934f0125dc38b03.tar.gz
+cef064f4f937694466bd50f96b63bb5ce131a9993711c26852be9ef93c2c434837f420c103214d5ff39be814a510d24dba6c338027f047a5e24ea45b84321973  futo-resources-d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd.tar.gz
+"

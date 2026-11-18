@@ -1,0 +1,12 @@
+option('futo_source', type: 'string', value: '',
+       description: 'Path to a checkout of FUTO Keyboard (github.com/futo-org/android-keyboard); defaults to futo/android-keyboard (scripts/fetch-futo.sh)')
+option('futo_resources', type: 'string', value: '',
+       description: 'Path to a checkout of keyboard-large-resources to install the English dictionary and model from; empty installs none')
+option('layer_shell', type: 'feature', value: 'auto',
+       description: 'Use gtk4-layer-shell to dock as an on-screen keyboard (without it, runs as a normal window)')
+option('feedback', type: 'feature', value: 'auto',
+       description: 'Haptic and audio feedback on key presses through feedbackd')
+option('desktop_file', type: 'boolean', value: true,
+       description: 'Install sm.puri.OSK0.desktop and mobi.phosh.OSK.service so phosh starts this keyboard (conflicts with stevia and squeekboard)')
+option('systemd_user_unit_dir', type: 'string', value: '',
+       description: 'Where to install mobi.phosh.OSK.service (default: PREFIX/lib/systemd/user)')
