@@ -57,17 +57,55 @@ build/src/futo-osk --test --data-dir <dir containing en/main.dict, en/model.gguf
 `gtk4-layer-shell` is optional at build time. Without it, the keyboard runs
 as a normal window.
 
-## On the phone
+## Alpine / postmarketOS packages
+
+`packaging/alpine/APKBUILD` builds two packages:
+
+- **`futo-osk`:** the keyboard, plus the English dictionary and model.
+- **`futo-osk-systemd`:** phosh's `mobi.phosh.OSK.service` unit. It
+  installs itself on systemd systems.
+
+The APKBUILD downloads FUTO's source and model itself. The source
+tarball for this project is made by the scripts below. When you change
+anything, bump `pkgrel` in the APKBUILD. Otherwise pmbootstrap reuses its
+old build and apk won't reinstall the same version.
+
+**In a container, on any Linux machine** (podman or docker):
 
 ```sh
-scripts/stage-pmaports.sh ~/dev/pmaports      # writes temp/futo-osk/
-pmbootstrap build futo-osk
-pmbootstrap sideload futo-osk
+scripts/build-alpine.sh                 # host architecture, into ./packages/
+scripts/build-alpine.sh -a aarch64      # for the phone; needs qemu-user binfmt, slow
 ```
 
-The package provides `phosh-osk-stub` and replaces stevia's
-`sm.puri.OSK0.desktop`, so after `apk del stevia` and a re-login, phosh
-starts futo-osk. `--row-height` overrides the automatic key height.
+The APKs are signed with a throwaway key, which is saved next to them.
+Install with `apk add --allow-untrusted`, or copy the `.rsa.pub` into
+`/etc/apk/keys/`.
+
+**On Alpine itself:**
+
+```sh
+sudo apk add alpine-sdk && abuild-keygen -ain   # once
+scripts/stage-apkbuild.sh /tmp/futo-osk
+cd /tmp/futo-osk && abuild -r                   # APKs land in ~/packages/
+```
+
+**With pmbootstrap, for a postmarketOS device:**
+
+```sh
+scripts/stage-pmaports.sh ~/dev/pmaports        # writes temp/futo-osk/
+pmbootstrap build --arch aarch64 futo-osk
+pmbootstrap sideload futo-osk futo-osk-systemd
+```
+
+`gtk4-layer-shell` has to be on the device first (`apk add
+gtk4-layer-shell`), because sideloading installs without network access.
+
+**Switching to futo-osk:**
+
+The package provides `phosh-osk-stub` and takes over stevia's
+`sm.puri.OSK0.desktop` and `mobi.phosh.OSK.service`. Run `apk del stevia`,
+then log out and back in, and phosh starts futo-osk.
+`futo-osk --row-height N` overrides the automatic key height.
 
 ## Licence
 

@@ -1,11 +1,11 @@
 # Maintainer: Jay Harris <jay.harris@outlook.co.nz>
 pkgname=futo-osk
-pkgver=0.1.0
-pkgrel=2
+pkgver=0.1.1
+pkgrel=0
 _futo_commit=7d61ab4132cfcbb7aa713190d934f0125dc38b03
 _resources_commit=d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd
 pkgdesc="Phosh on-screen keyboard with FUTO Keyboard's transformer prediction, autocorrect and swipe typing"
-url="https://github.com/futo-org/android-keyboard"
+url="https://github.com/fallaciousreasoning/futo-osk"
 arch="aarch64 x86_64"
 # FUTO's engine and model are under the FUTO Source First License:
 # non-commercial use and free distribution only.
@@ -25,7 +25,7 @@ replaces="stevia stevia-systemd"
 subpackages="$pkgname-systemd"
 # The typing test needs gtk4-broadwayd and a session bus.
 options="!check"
-source="$pkgname-$pkgver.tar.gz
+source="$pkgname-$pkgver.tar.gz::https://github.com/fallaciousreasoning/futo-osk/archive/refs/tags/v$pkgver.tar.gz
 	futo-android-keyboard-$_futo_commit.tar.gz::https://github.com/futo-org/android-keyboard/archive/$_futo_commit.tar.gz
 	futo-resources-$_resources_commit.tar.gz::https://gitlab.futo.org/keyboard/keyboard-large-resources/-/archive/$_resources_commit/keyboard-large-resources-$_resources_commit.tar.gz
 	"
@@ -60,7 +60,7 @@ systemd() {
 }
 
 sha512sums="
-SKIP  futo-osk-0.1.0.tar.gz
+SKIP  futo-osk-0.1.1.tar.gz
 5f73fa2698b2e0e1db93db0485a214c6fd3298a04f221012fa7b765f7f5a80e3d8c8d566e94fd4d8aa3e96d8eec8d0e5c301d2ede2f5ad92f3814568a7359fbc  futo-android-keyboard-7d61ab4132cfcbb7aa713190d934f0125dc38b03.tar.gz
 cef064f4f937694466bd50f96b63bb5ce131a9993711c26852be9ef93c2c434837f420c103214d5ff39be814a510d24dba6c338027f047a5e24ea45b84321973  futo-resources-d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd.tar.gz
 "
