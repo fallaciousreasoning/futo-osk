@@ -1,6 +1,8 @@
 /*
  * Built-in layouts, after FUTO Keyboard's Default/qwerty.yaml and
  * Special/{symbols,symbols_shift,number}.yaml with English long-press keys.
+ * Like FUTO's defaults, the top row's long-press keys start with a number
+ * and the other letter rows' with a symbol (MoreKeysBuilder.kt).
  *
  * Each key is written as "base more1 more2 ...". Special keys start with
  * '$', and "@n" sets a key's width.
@@ -13,7 +15,7 @@
 typedef struct {
     const char *const *rows[6];
     gboolean words;
-    gboolean hints; /* show each top-row key's first alternative as a hint */
+    gboolean hints; /* show each letter key's first alternative as a hint */
 } LayoutSpec;
 
 #define ROW(...) ((const char *const[]){ __VA_ARGS__, NULL })
@@ -25,8 +27,9 @@ static const LayoutSpec specs[OSK_N_LAYERS] = {
         .rows = {
             ROW("q 1", "w 2", "e 3 è é ê ë ē", "r 4", "t 5", "y 6", "u 7 ù ú û ü ū",
                 "i 8 ì í î ï ī", "o 9 ò ó ô ö œ ø ō õ", "p 0"),
-            ROW("a à á â ä æ ã å ā", "s ß", "d", "f", "g", "h", "j", "k", "l"),
-            ROW("$shift@1.5", "z", "x", "c ç", "v", "b", "n ñ", "m", "$delete@1.5"),
+            ROW("a @ à á â ä æ ã å ā", "s # ß", "d $", "f %", "g & |", "h - – — _", "j + =",
+                "k ( [ { <", "l ) ] } >"),
+            ROW("$shift@1.5", "z *", "x \"", "c ' ç", "v :", "b ;", "n ! ñ", "m ? /", "$delete@1.5"),
             ROW("$symbols@1.5", ", ; :", "$space@5", ". ? ! ' \" - … :", "$enter@1.5"),
         },
     },
@@ -109,7 +112,7 @@ OskLayout *osk_layout_new(OskLayer layer) {
 
         double units = 0;
         for (int k = 0; k < row->n_keys; k++) {
-            parse_key(&row->keys[k], spec->rows[r][k], spec->hints && r == 0);
+            parse_key(&row->keys[k], spec->rows[r][k], spec->hints && r < 3);
             units += row->keys[k].width;
         }
         layout->units = MAX(layout->units, units);

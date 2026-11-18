@@ -173,26 +173,31 @@ static int popup_count(Pointer *p) {
     return p->key->more ? (int)g_strv_length(p->key->more) : 0;
 }
 
+/* The first choice sits right above the key, so a plain long-press picks
+ * it; the rest run towards the middle of the keyboard. */
 static graphene_rect_t popup_cell(OskKeyboard *self, Pointer *p, int i) {
     double w = p->key->face.size.width + 2 * KEY_GAP_X;
     double h = p->key->face.size.height;
+    double width = gtk_widget_get_width(GTK_WIDGET(self));
     int n = popup_count(p);
-    double total = n * w;
     double x0 = p->key->face.origin.x + p->key->face.size.width / 2 - w / 2;
-    /* Grow towards the middle of the keyboard, and stay on screen. */
-    if (x0 + p->key->face.size.width / 2 > gtk_widget_get_width(GTK_WIDGET(self)) / 2) x0 -= total - w;
-    x0 = CLAMP(x0, 0, MAX(0, gtk_widget_get_width(GTK_WIDGET(self)) - total));
+    gboolean leftwards = x0 + w / 2 > width / 2;
+    /* Shift the whole row back on screen if it runs off. */
+    double lo = leftwards ? x0 - (n - 1) * w : x0;
+    double shift = CLAMP(lo, 0, MAX(0, width - n * w)) - lo;
     double y = p->key->face.origin.y - h - KEY_GAP_Y * 2;
-    return GRAPHENE_RECT_INIT(x0 + i * w, y, w, h);
+    return GRAPHENE_RECT_INIT(x0 + shift + (leftwards ? -i : i) * w, y, w, h);
 }
 
 static int popup_index_at(OskKeyboard *self, Pointer *p, double x) {
-    int n = popup_count(p);
+    int n = popup_count(p), best = 0;
+    double best_d = G_MAXDOUBLE;
     for (int i = 0; i < n; i++) {
         graphene_rect_t c = popup_cell(self, p, i);
-        if (x < c.origin.x + c.size.width) return i;
+        double d = fabs(x - (c.origin.x + c.size.width / 2));
+        if (d < best_d) best = i, best_d = d;
     }
-    return n - 1;
+    return best;
 }
 
 static char *popup_text(OskKeyboard *self, Pointer *p, int i) {

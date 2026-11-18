@@ -7,6 +7,7 @@
  *
  * Scripts are plain text plus: \b backspace, \n enter, {swipe:word},
  * {pick:N} to tap suggestion slot N (0 left, 1 centre, 2 right),
+ * {hold:k} to type letter key k's first long-press choice,
  * {shot:name} to save a screenshot.
  */
 #include <gtk/gtk.h>
@@ -44,6 +45,9 @@ static const Case cases[] = {
     { "thank {pick:1}.", "Thank you. " },
     /* typing fast: separators wait for the word's suggestions */
     { "i hwve a dog ", "I have a dog " },
+    /* symbols from long-pressing letters */
+    { "{hold:t}{hold:p}{hold:f} off{hold:n} ", "50% off! " },
+    { "fish {hold:g} chips", "Fish & chips" },
     { "i would like to hwl{shot:typing}", NULL },
 };
 
@@ -92,6 +96,16 @@ static void tap(OskKeyType type, const char *text, const char *typed) {
         return;
     }
     g_signal_emit_by_name(keyboard, "key", key, typed, x, y);
+}
+
+static void hold(const char *letter) {
+    int x, y;
+    OskKey *key = osk_keyboard_find_key(keyboard, OSK_KEY_CHAR, letter, &x, &y);
+    if (!key || !key->more) {
+        g_printerr("  no long-press choices on %s\n", letter);
+        return;
+    }
+    g_signal_emit_by_name(keyboard, "key", key, key->more[0], x, y);
 }
 
 static void swipe(const char *word) {
@@ -169,6 +183,7 @@ static gboolean step(gpointer data) {
         if (g_str_has_prefix(cmd, "swipe:")) swipe(cmd + 6), delay = 300;
         else if (g_str_has_prefix(cmd, "pick:")) g_signal_emit_by_name(slot(atoi(cmd + 5)), "clicked");
         else if (g_str_has_prefix(cmd, "shot:")) screenshot(cmd + 5);
+        else if (g_str_has_prefix(cmd, "hold:")) hold(cmd + 5);
     } else if (*cursor == '\b') {
         tap(OSK_KEY_DELETE, NULL, NULL);
         cursor++;
