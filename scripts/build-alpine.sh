@@ -36,8 +36,11 @@ trap 'rm -rf "$work"' EXIT
 "$(dirname "$0")/stage-apkbuild.sh" "$work/futo-osk"
 mkdir -p "$out"
 
+owner=
+case $engine in *docker) owner="$(id -u):$(id -g)" ;; esac
+
 # shellcheck disable=SC2086
-"$engine" run --rm $platform \
+"$engine" run --rm $platform -e OWNER="$owner" \
     -v "$work:/work" -v "$out:/out" \
     docker.io/library/alpine:edge sh -euc '
         apk add --no-progress -q alpine-sdk sudo
@@ -48,13 +51,16 @@ mkdir -p "$out"
         chown -R builder:builder /home/builder/futo-osk
         su builder -c "
             set -e
-            abuild-keygen -anq
+            abuild-keygen -ainq
             cd ~/futo-osk
             REPODEST=/tmp/repo abuild -r
-            cp -r /tmp/repo/futo-osk/* /out/
-            cp ~/.abuild/*.rsa.pub /out/
         "
-        chown -R '"$(id -u):$(id -g)"' /out
+        # Only root may write to the mounted /out under rootless podman.
+        cp -r /tmp/repo/*/* /out/  # REPODEST/<parent dir name>/<arch>
+        cp /etc/apk/keys/builder-*.rsa.pub /out/
+        # Docker runs as real root; rootless podman already maps root to us.
+        [ -n "$OWNER" ] && chown -R "$OWNER" /out
+        true
     '
 echo "Packages in $out"
 ls -R "$out"
