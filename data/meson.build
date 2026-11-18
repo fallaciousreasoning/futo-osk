@@ -6,6 +6,14 @@ configure_file(
   install: get_option('desktop_file'),
   install_dir: get_option('datadir') / 'applications')
 
+# FUTO's English word list, for futo-swipe-decoder (swipe-decoder/).
+custom_target('words.combined',
+  input: futo_source / 'dictionaries' / 'en_wordlist.combined.gz',
+  output: 'words.combined',
+  command: ['sh', '-c', 'gzip -dc "$1" > "$2"', 'sh', '@INPUT@', '@OUTPUT@'],
+  install: true,
+  install_dir: pkgdatadir / 'en')
+
 resources = get_option('futo_resources')
 if resources != ''
   install_data(resources / 'raw' / 'main_en.dict', rename: 'main.dict', install_dir: pkgdatadir / 'en')

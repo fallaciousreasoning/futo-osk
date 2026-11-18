@@ -572,8 +572,14 @@ static void on_input_changed(OskInput *input, gboolean activated, gpointer data)
     update_shift(self);
 }
 
+/* The FUTO Swipe model licence asks for a visible "Powered by FUTO Swipe". */
+static void on_swipe_decoder(gboolean neural, gpointer data) {
+    OskIme *self = data;
+    osk_keyboard_set_space_label(self->keyboard, neural ? "Powered by FUTO Swipe" : NULL);
+}
+
 OskIme *osk_ime_new(OskInput *input, OskKeyboard *keyboard, const char *dict_path,
-                    const char *lm_path) {
+                    const char *lm_path, OskSwipeHelperConfig *swipe_helper) {
     OskIme *self = g_new0(OskIme, 1);
     self->input = input;
     self->keyboard = keyboard;
@@ -582,7 +588,11 @@ OskIme *osk_ime_new(OskInput *input, OskKeyboard *keyboard, const char *dict_pat
     self->xs = g_array_new(FALSE, FALSE, sizeof(int));
     self->ys = g_array_new(FALSE, FALSE, sizeof(int));
     g_queue_init(&self->pending);
-    if (dict_path) self->predictor = osk_predictor_new(dict_path, lm_path, on_predictor_result, self);
+    if (dict_path)
+        self->predictor = osk_predictor_new(dict_path, lm_path, swipe_helper, on_predictor_result,
+                                            on_swipe_decoder, self);
+    else
+        osk_swipe_helper_config_free(swipe_helper);
 
     self->bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_widget_add_css_class(self->bar, "suggestions");

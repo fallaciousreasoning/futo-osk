@@ -42,6 +42,8 @@ OskShift osk_keyboard_get_shift(OskKeyboard *self);
 
 void osk_keyboard_set_row_height(OskKeyboard *self, int height);
 void osk_keyboard_set_dark(OskKeyboard *self, gboolean dark);
+/* Faint text on the space bar, or NULL for none. */
+void osk_keyboard_set_space_label(OskKeyboard *self, const char *label);
 
 /* The letter keys, for the engine. Returns the number of keys. */
 int osk_keyboard_get_engine_keys(OskKeyboard *self, FutoKey *keys, int max_keys, int *width,

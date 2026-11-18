@@ -1,6 +1,6 @@
 # Maintainer: Jay Harris <jay.harris@outlook.co.nz>
 pkgname=futo-osk
-pkgver=0.1.1
+pkgver=0.2.0
 pkgrel=0
 _futo_commit=7d61ab4132cfcbb7aa713190d934f0125dc38b03
 _resources_commit=d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd
@@ -60,7 +60,7 @@ systemd() {
 }
 
 sha512sums="
-56b16bb83ffa39dfaff79b61e5255a40369dbb55a47c6c360b0542931fb11d997c31eba57e265034b4c99f3e353cf8d9c258ef619776d00e1811c1d7e1210d90  futo-osk-0.1.1.tar.gz
+SKIP  futo-osk-0.2.0.tar.gz
 5f73fa2698b2e0e1db93db0485a214c6fd3298a04f221012fa7b765f7f5a80e3d8c8d566e94fd4d8aa3e96d8eec8d0e5c301d2ede2f5ad92f3814568a7359fbc  futo-android-keyboard-7d61ab4132cfcbb7aa713190d934f0125dc38b03.tar.gz
 cef064f4f937694466bd50f96b63bb5ce131a9993711c26852be9ef93c2c434837f420c103214d5ff39be814a510d24dba6c338027f047a5e24ea45b84321973  futo-resources-d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd.tar.gz
 "

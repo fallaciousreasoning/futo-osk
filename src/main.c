@@ -50,7 +50,7 @@ static const GOptionEntry options[] = {
       "Show a text field and type into it instead of other apps", NULL },
     { "row-height", 'r', 0, G_OPTION_ARG_INT, &opt_row_height, "Key row height in pixels", "PX" },
     { "data-dir", 'd', 0, G_OPTION_ARG_FILENAME, &opt_data_dir,
-      "Directory holding en/main.dict and en/model.gguf", "DIR" },
+      "Directory holding en/main.dict, en/model.gguf and en/words.combined", "DIR" },
     { NULL },
 };
 
@@ -247,7 +247,10 @@ static void activate(GtkApplication *app, Osk *osk) {
     g_autofree char *model = find_data("model.gguf");
     if (!dict) g_warning("No en/main.dict found; suggestions are off");
     else if (!model) g_message("No en/model.gguf found; using the dictionary alone");
-    osk->ime = osk_ime_new(input, osk->keyboard, dict, model);
+    g_autofree char *words = find_data("words.combined");
+    OskSwipeHelperConfig *swipe = osk_swipe_helper_config_find(words);
+    if (!swipe) g_message("futo-swipe-decoder isn't installed; swipes use the dictionary's decoder");
+    osk->ime = osk_ime_new(input, osk->keyboard, dict, model, swipe);
     osk_ime_set_focus_callback(osk->ime, on_focus, osk);
 
     GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);

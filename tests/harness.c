@@ -209,7 +209,12 @@ static void activate(GtkApplication *app, char **argv) {
 
     g_autofree char *dict = g_build_filename(argv[1], "en", "main.dict", NULL);
     g_autofree char *model = g_build_filename(argv[1], "en", "model.gguf", NULL);
-    ime = osk_ime_new(osk_test_input_new(view), keyboard, dict, model);
+    /* Swipes go to futo-swipe-decoder if FUTO_OSK_SWIPE_DECODER and
+     * FUTO_SWIPE_MODELS point at one, else to the dictionary. */
+    g_autofree char *words = g_build_filename(argv[1], "en", "words.combined", NULL);
+    OskSwipeHelperConfig *swipe = g_getenv("FUTO_OSK_SWIPE_DECODER") ? osk_swipe_helper_config_find(words) : NULL;
+    g_print("swipes: %s\n", swipe ? "futo-swipe-decoder" : "dictionary");
+    ime = osk_ime_new(osk_test_input_new(view), keyboard, dict, model, swipe);
 
     gtk_box_append(GTK_BOX(box), view);
     gtk_box_append(GTK_BOX(box), osk_ime_get_bar(ime));

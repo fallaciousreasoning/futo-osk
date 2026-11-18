@@ -1,7 +1,7 @@
 /*
  * The typing logic between the key area, the suggestion strip, the FUTO
  * engine and the text field: composing words, autocorrect and its undo,
- * swipes, phantom spaces and auto-capitalisation.
+ * swipes, automatic spaces and auto-capitalisation.
  */
 #pragma once
 
@@ -9,12 +9,14 @@
 
 #include "osk-input.h"
 #include "osk-keyboard.h"
+#include "osk-swipe-helper.h"
 
 typedef struct OskIme OskIme;
 
-/* Takes ownership of input. dict_path/lm_path may be NULL. */
+/* Takes ownership of input and swipe_helper. dict_path, lm_path and
+ * swipe_helper may be NULL. */
 OskIme *osk_ime_new(OskInput *input, OskKeyboard *keyboard, const char *dict_path,
-                    const char *lm_path);
+                    const char *lm_path, OskSwipeHelperConfig *swipe_helper);
 void osk_ime_free(OskIme *self);
 
 /* The suggestion strip, to pack above the keyboard. */

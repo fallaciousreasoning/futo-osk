@@ -7,15 +7,22 @@
 #include <glib.h>
 
 #include "futo-engine.h"
+#include "osk-swipe-helper.h"
 
 typedef struct OskPredictor OskPredictor;
 
 typedef void (*OskPredictorCallback)(guint request_id, const FutoSuggestions *result,
                                      gpointer data);
+/* Whether swipes are decoded by FUTO Swipe's neural models. */
+typedef void (*OskPredictorSwipeCallback)(gboolean neural, gpointer data);
 
-/* Loads the engine in the background. lm_path may be NULL. */
+/* Loads the engine in the background. lm_path may be NULL. With a swipe
+ * helper config (taken over), swipes go to futo-swipe-decoder while it
+ * works, and to the dictionary's decoder otherwise. */
 OskPredictor *osk_predictor_new(const char *dict_path, const char *lm_path,
-                                OskPredictorCallback callback, gpointer data);
+                                OskSwipeHelperConfig *swipe_helper,
+                                OskPredictorCallback callback,
+                                OskPredictorSwipeCallback swipe_callback, gpointer data);
 void osk_predictor_free(OskPredictor *self);
 
 void osk_predictor_set_layout(OskPredictor *self, int width, int height, const FutoKey *keys,

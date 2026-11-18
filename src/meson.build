@@ -13,6 +13,8 @@ endforeach
 
 conf = configuration_data()
 conf.set_quoted('PKGDATADIR', pkgdatadir)
+conf.set_quoted('DATADIR', get_option('prefix') / get_option('datadir'))
+conf.set_quoted('LIBEXECDIR', get_option('prefix') / get_option('libexecdir'))
 
 gtk_dep = dependency('gtk4', version: '>= 4.12')
 deps = [
@@ -45,6 +47,7 @@ osk_core = static_library('osk-core',
   'osk-keyboard.c',
   'osk-layout.c',
   'osk-predictor.c',
+  'osk-swipe-helper.c',
   protocol_sources,
   dependencies: deps)
 

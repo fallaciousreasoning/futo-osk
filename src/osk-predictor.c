@@ -23,9 +23,16 @@ struct OskPredictor {
     guint next_id;
 
     char *dict_path, *lm_path;
+    OskSwipeHelperConfig *swipe_config;
     OskPredictorCallback callback;
+    OskPredictorSwipeCallback swipe_callback;
     gpointer data;
 };
+
+typedef struct {
+    OskPredictor *self;
+    gboolean neural;
+} SwipeStatus;
 
 typedef struct {
     OskPredictor *self;
@@ -55,6 +62,26 @@ static gboolean deliver(gpointer data) {
     return G_SOURCE_REMOVE;
 }
 
+static gboolean deliver_swipe_status(gpointer data) {
+    SwipeStatus *st = data;
+    if (st->self->swipe_callback) st->self->swipe_callback(st->neural, st->self->data);
+    return G_SOURCE_REMOVE;
+}
+
+static void report_swipe(OskPredictor *self, gboolean neural) {
+    SwipeStatus *st = g_new0(SwipeStatus, 1);
+    st->self = self;
+    st->neural = neural;
+    g_main_context_invoke_full(NULL, G_PRIORITY_DEFAULT, deliver_swipe_status, st, g_free);
+}
+
+/* After a helper failure: decode swipes with the dictionary from now on. */
+static void drop_helper(OskPredictor *self, OskSwipeHelper **helper) {
+    g_warning("futo-swipe-decoder failed; falling back to the dictionary's swipe decoder");
+    g_clear_pointer(helper, osk_swipe_helper_free);
+    report_swipe(self, FALSE);
+}
+
 static gpointer run(gpointer data) {
     OskPredictor *self = data;
     FutoEngine *engine = futo_engine_new(self->dict_path, self->lm_path, "en");
@@ -62,6 +89,9 @@ static gpointer run(gpointer data) {
         g_warning("Could not load the dictionary %s; suggestions are off", self->dict_path);
     else if (self->lm_path && !futo_engine_has_lm(engine))
         g_warning("Could not load the language model %s", self->lm_path);
+
+    OskSwipeHelper *helper = self->swipe_config ? osk_swipe_helper_new(self->swipe_config) : NULL;
+    report_swipe(self, helper != NULL);
 
     g_mutex_lock(&self->lock);
     while (!self->quit) {
@@ -76,11 +106,21 @@ static gpointer run(gpointer data) {
         if (engine && layout)
             futo_engine_set_layout(engine, layout->width, layout->height,
                                    (FutoKey *)layout->keys->data, layout->keys->len);
+        if (helper && layout &&
+            !osk_swipe_helper_set_layout(helper, layout->width, (FutoKey *)layout->keys->data,
+                                         layout->keys->len))
+            drop_helper(self, &helper);
         if (r) {
             Delivery *d = g_new0(Delivery, 1);
             d->self = self;
             d->id = r->id;
-            if (!engine)
+            gboolean decoded = FALSE;
+            if (r->gesture && helper) {
+                decoded = osk_swipe_helper_decode(helper, (int *)r->xs->data, (int *)r->ys->data,
+                                                  (int *)r->times->data, r->xs->len, &d->result);
+                if (!decoded) drop_helper(self, &helper);
+            }
+            if (!engine || decoded)
                 ;
             else if (r->gesture)
                 futo_engine_gesture(engine, r->context, (int *)r->xs->data, (int *)r->ys->data,
@@ -95,18 +135,23 @@ static gpointer run(gpointer data) {
         g_mutex_lock(&self->lock);
     }
     g_mutex_unlock(&self->lock);
+    osk_swipe_helper_free(helper);
     futo_engine_free(engine);
     return NULL;
 }
 
 OskPredictor *osk_predictor_new(const char *dict_path, const char *lm_path,
-                                OskPredictorCallback callback, gpointer data) {
+                                OskSwipeHelperConfig *swipe_helper,
+                                OskPredictorCallback callback,
+                                OskPredictorSwipeCallback swipe_callback, gpointer data) {
     OskPredictor *self = g_new0(OskPredictor, 1);
     g_mutex_init(&self->lock);
     g_cond_init(&self->cond);
     self->dict_path = g_strdup(dict_path);
     self->lm_path = g_strdup(lm_path);
+    self->swipe_config = swipe_helper;
     self->callback = callback;
+    self->swipe_callback = swipe_callback;
     self->data = data;
     self->thread = g_thread_new("futo-engine", run, self);
     return self;
@@ -125,6 +170,7 @@ void osk_predictor_free(OskPredictor *self) {
     g_cond_clear(&self->cond);
     g_free(self->dict_path);
     g_free(self->lm_path);
+    osk_swipe_helper_config_free(self->swipe_config);
     g_free(self);
 }
 

@@ -47,6 +47,7 @@ struct _OskKeyboard {
     OskShift shift;
     gint64 last_shift_tap;
     int row_height;
+    char *space_label;
     gboolean dark;
     Palette palette;
 
@@ -152,9 +153,13 @@ int osk_keyboard_get_engine_keys(OskKeyboard *self, FutoKey *keys, int max_keys,
         for (int k = 0; k < layout->rows[r].n_keys && n < max_keys; k++) {
             OskKey *key = &layout->rows[r].keys[k];
             if (key->type != OSK_KEY_CHAR) continue;
+            /* The key's own slot, not its hit area: edge keys' hit areas
+             * stretch to the screen edge, which would skew their centres. */
             gunichar c = g_utf8_get_char(key->text);
-            keys[n++] = (FutoKey){ (int)c, (int)(key->hit.origin.x * s), (int)(key->hit.origin.y * s),
-                                   (int)(key->hit.size.width * s), (int)(key->hit.size.height * s) };
+            keys[n++] = (FutoKey){ (int)c, (int)((key->face.origin.x - KEY_GAP_X) * s),
+                                   (int)((key->face.origin.y - KEY_GAP_Y) * s),
+                                   (int)((key->face.size.width + 2 * KEY_GAP_X) * s),
+                                   (int)((key->face.size.height + 2 * KEY_GAP_Y) * s) };
         }
     }
     *width = gtk_widget_get_width(GTK_WIDGET(self)) * s;
@@ -307,6 +312,8 @@ static void draw_key(OskKeyboard *self, GtkSnapshot *snapshot, OskKey *key) {
     } else {
         draw_icon(self, snapshot, key, fg);
     }
+    if (key->type == OSK_KEY_SPACE && self->space_label)
+        draw_text(self, snapshot, self->space_label, cx, cy, f->size.height * 0.26, FALSE, &self->palette.hint);
     if (key->hint)
         draw_text(self, snapshot, key->hint, f->origin.x + f->size.width - 7, f->origin.y + 8,
                   f->size.height * 0.24, FALSE, &pal->hint);
@@ -691,6 +698,7 @@ static void osk_keyboard_dispose(GObject *object) {
     g_clear_handle_id(&self->trail_fade_id, g_source_remove);
     g_clear_pointer(&self->fading_trail, g_array_unref);
     for (int l = 0; l < OSK_N_LAYERS; l++) g_clear_pointer(&self->layouts[l], osk_layout_free);
+    g_clear_pointer(&self->space_label, g_free);
     G_OBJECT_CLASS(osk_keyboard_parent_class)->dispose(object);
 }
 
@@ -749,6 +757,12 @@ void osk_keyboard_set_row_height(OskKeyboard *self, int height) {
     if (self->row_height == height) return;
     self->row_height = height;
     gtk_widget_queue_resize(GTK_WIDGET(self));
+}
+
+void osk_keyboard_set_space_label(OskKeyboard *self, const char *label) {
+    g_free(self->space_label);
+    self->space_label = g_strdup(label);
+    gtk_widget_queue_draw(GTK_WIDGET(self));
 }
 
 void osk_keyboard_set_dark(OskKeyboard *self, gboolean dark) {

@@ -1,0 +1,149 @@
+# Maintainer: Jay Harris <jay.harris@outlook.co.nz>
+pkgname=futo-swipe-decoder
+pkgver=0.2.0
+pkgrel=0
+_swipe_library=e8ade0e03bc18e9609e1f56afbd4394049185a99
+_executorch=0b0e2c5cdd67c8b4396a46ea1d1aa72ffb0128d7
+_xnnpack=3131afead790c5c69a9aa12273dfc40399789ad7
+_cpuinfo=8a9210069b5a37dd89ed118a783945502a30a4ae
+_pthreadpool=c2ba5c50bb58d1397b693740cf75fad836a0d1bf
+_fxdiv=b408327ac2a15ec3e43352421954f5b1967701d1
+_fp16=4dfe081cf6bcd15db339cf2680b9281b8451eeb3
+_flatbuffers=595bf0007ab1929570c7671f091313c8fc20644e
+_flatcc=896db54787e8b730a6be482c69324751f3f5f117
+_json=ac0133ea89a8fd730a9cc9649c5226a9995dc3e1
+_gflags=a738fdf9338412f83ab3f26f31ac11ed3f3ec4bd
+_kleidiai=45bf06030727ce049793ce6749e943cc2ea896fe
+# PyTorch's source is only used for torchgen, ExecuTorch's code generator.
+_pytorch=2.10.0
+_models=0a9a44bbe4d5b8aa8d1ff579ffc40d4861ae2467
+pkgdesc="FUTO Swipe's neural swipe decoder for futo-osk"
+url="https://github.com/fallaciousreasoning/futo-osk"
+arch="aarch64 x86_64"
+# The helper is GPL-3.0 (it links FUTO's swipe-library); ExecuTorch and its
+# dependencies are BSD/MIT/Apache; the models are under the FUTO Model
+# Weights License, which requires showing "Powered by FUTO Swipe" (futo-osk
+# does, on the space bar).
+license="GPL-3.0-or-later AND BSD-3-Clause AND MIT AND Apache-2.0 AND LicenseRef-FUTO-Model-Weights-1.0"
+makedepends="
+	cmake
+	linux-headers
+	patch
+	py3-typing-extensions
+	py3-yaml
+	python3
+	samurai
+	"
+# Its models are tested with ExecuTorch's own tooling, not here.
+options="!check"
+_gh=https://github.com
+_hf=https://huggingface.co/futo-org/futo-swipe/resolve/$_models
+source="futo-osk-$pkgver.tar.gz::https://github.com/fallaciousreasoning/futo-osk/archive/refs/tags/v$pkgver.tar.gz
+	swipe-library-$_swipe_library.tar.gz::https://gitlab.futo.org/keyboard/swipe-library/-/archive/$_swipe_library/swipe-library-$_swipe_library.tar.gz
+	executorch-$_executorch.tar.gz::$_gh/pytorch/executorch/archive/$_executorch.tar.gz
+	XNNPACK-$_xnnpack.tar.gz::$_gh/google/XNNPACK/archive/$_xnnpack.tar.gz
+	cpuinfo-$_cpuinfo.tar.gz::$_gh/pytorch/cpuinfo/archive/$_cpuinfo.tar.gz
+	pthreadpool-$_pthreadpool.tar.gz::$_gh/google/pthreadpool/archive/$_pthreadpool.tar.gz
+	FXdiv-$_fxdiv.tar.gz::$_gh/Maratyszcza/FXdiv/archive/$_fxdiv.tar.gz
+	FP16-$_fp16.tar.gz::$_gh/Maratyszcza/FP16/archive/$_fp16.tar.gz
+	flatbuffers-$_flatbuffers.tar.gz::$_gh/google/flatbuffers/archive/$_flatbuffers.tar.gz
+	flatcc-$_flatcc.tar.gz::$_gh/dvidelabs/flatcc/archive/$_flatcc.tar.gz
+	json-$_json.tar.gz::$_gh/nlohmann/json/archive/$_json.tar.gz
+	gflags-$_gflags.tar.gz::$_gh/gflags/gflags/archive/$_gflags.tar.gz
+	kleidiai-$_kleidiai.tar.gz::$_gh/ARM-software/kleidiai/archive/$_kleidiai.tar.gz
+	pytorch-$_pytorch.tar.gz::$_gh/pytorch/pytorch/archive/refs/tags/v$_pytorch.tar.gz
+	futo-swipe-LICENSE.md::$_hf/LICENSE.md
+	honorable_sturgeon-model_fp32.pte::$_hf/honorable_sturgeon/model_fp32.pte
+	honorable_sturgeon-metadata.json::$_hf/honorable_sturgeon/metadata.json
+	magic_macaw-model_fp32.pte::$_hf/magic_macaw/model_fp32.pte
+	magic_macaw-metadata.json::$_hf/magic_macaw/metadata.json
+	"
+builddir="$srcdir/futo-osk-$pkgver"
+
+prepare() {
+	default_prepare
+
+	# ExecuTorch insists on being in a directory named "executorch".
+	mv "$srcdir"/executorch-$_executorch "$srcdir"/executorch
+
+	# Its submodules, as far as this build uses them.
+	local et="$srcdir"/executorch dir path
+	for dir in \
+		XNNPACK-$_xnnpack:backends/xnnpack/third-party/XNNPACK \
+		cpuinfo-$_cpuinfo:backends/xnnpack/third-party/cpuinfo \
+		pthreadpool-$_pthreadpool:backends/xnnpack/third-party/pthreadpool \
+		FXdiv-$_fxdiv:backends/xnnpack/third-party/FXdiv \
+		FP16-$_fp16:backends/xnnpack/third-party/FP16 \
+		flatbuffers-$_flatbuffers:third-party/flatbuffers \
+		flatcc-$_flatcc:third-party/flatcc \
+		json-$_json:third-party/json \
+		gflags-$_gflags:third-party/gflags
+	do
+		path=${dir#*:}
+		rm -rf "$et/$path"
+		mv "$srcdir/${dir%%:*}" "$et/$path"
+	done
+
+	# torchgen reads ATen's operator definitions from torchgen/packaged/,
+	# which PyTorch's setup.py fills in for its wheels.
+	local torch="$srcdir"/pytorch-$_pytorch
+	mkdir -p "$torch"/torchgen/packaged/ATen/native
+	cp "$torch"/aten/src/ATen/native/*.yaml "$torch"/torchgen/packaged/ATen/native/
+	cp -r "$torch"/aten/src/ATen/templates "$torch"/torchgen/packaged/ATen/
+}
+
+build() {
+	PYTHONPATH="$srcdir"/pytorch-$_pytorch \
+	KLEIDIAI_SOURCE_DIR="$srcdir"/kleidiai-$_kleidiai \
+		sh swipe-decoder/build-executorch.sh \
+		"$srcdir"/executorch \
+		"$srcdir"/swipe-library-$_swipe_library \
+		"$srcdir"/executorch-build
+
+	cmake -B output -S swipe-decoder -G Ninja \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_INSTALL_LIBEXECDIR=libexec \
+		-DSWIPE_LIBRARY_DIR="$srcdir"/swipe-library-$_swipe_library \
+		-DEXECUTORCH_ROOT="$srcdir"/executorch \
+		-DET_BUILD="$srcdir"/executorch-build
+	cmake --build output
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install output
+
+	local model file
+	for model in honorable_sturgeon magic_macaw; do
+		for file in model_fp32.pte metadata.json; do
+			install -Dm644 "$srcdir"/$model-$file \
+				"$pkgdir"/usr/share/$pkgname/$model/$file
+		done
+	done
+	install -Dm644 swipe-decoder/LICENSE \
+		"$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+	install -Dm644 "$srcdir"/futo-swipe-LICENSE.md \
+		"$pkgdir"/usr/share/licenses/$pkgname/FUTO-Model-Weights-LICENSE.md
+}
+
+sha512sums="
+SKIP  futo-osk-0.2.0.tar.gz
+9fc69f38344be6f9432395c4a7c5764a9371e512ed001ce042a1010a17c5c39aa4270a838c3ad74097efdd7a5ae1e864c314b21b46a1d93cce90c80c6ddf78fe  swipe-library-e8ade0e03bc18e9609e1f56afbd4394049185a99.tar.gz
+daa64ab13856ef65694fe378bc8c9776b9c2b45e49a9fb65286d3c67cb139f293f90d81c50a61b3f7d0d31e6f757027f4e8e3c48fc3f8cbe1b5db19a2bc74064  executorch-0b0e2c5cdd67c8b4396a46ea1d1aa72ffb0128d7.tar.gz
+75149528cffefcb11f71c22eb9f5482a21b770df7a767491931bab501459f682761696092e822330d5fd1aabbb9d98d429ad1a759175e083fec92f0923a35a51  XNNPACK-3131afead790c5c69a9aa12273dfc40399789ad7.tar.gz
+fa7db1c8bcb3a3573976406029b5504e7ea3e30e5f3091f30b68e5a4657294b3b70b74592d743a28691dd14735a579ea9155f1ec62e345134a131848329794ce  cpuinfo-8a9210069b5a37dd89ed118a783945502a30a4ae.tar.gz
+3c1fc5b7ed716c7b581f06449b2ca9513331c3b279cb6b289c735c3d64f1ac0ac8f19d3362b28a35ce57ab066b60c4bb3147727cf4f23c2c906aab03d0b35729  pthreadpool-c2ba5c50bb58d1397b693740cf75fad836a0d1bf.tar.gz
+d46d7c1437eccf8dc5ab5e51b0641d190839451ab059c8a24a220a9cf05a84a66b5d08c3ff730622efe491152a8378a2c726fd9abad19a3df98db40d6a13e4b9  FXdiv-b408327ac2a15ec3e43352421954f5b1967701d1.tar.gz
+e79a1f6f8d4aeca85982158d5b070923d31d4f2062ed84cfa6f26c47a34f2e8ac49e0f330b7d49f5732d5e1eec6e7afccdac43645070060fb7827e2ce261dd3e  FP16-4dfe081cf6bcd15db339cf2680b9281b8451eeb3.tar.gz
+cf23d5d85a01a3276f07b065029b38843a60b1724070384a12e69ed1ef2debcabeb63b6f8e79fa25e9d8cd866f05e4d57573cad427598fc22947449b8cb3403f  flatbuffers-595bf0007ab1929570c7671f091313c8fc20644e.tar.gz
+ce1fbcd98404f46d2cb7814bab54f559901b8a29f5ce0a54f2e74c9dce4297e8a8bac59499e92ee8518a49512db216e793b46ac3769d7d678a13e5b569ef8269  flatcc-896db54787e8b730a6be482c69324751f3f5f117.tar.gz
+351c910148e30efdb47389c777c184e0be2762b2acd4789cecc72c95eca957919f70ba51514be554914a72d25eb3e7173780b38e334cb6b6b7d60ff881866d84  json-ac0133ea89a8fd730a9cc9649c5226a9995dc3e1.tar.gz
+8d9787880220a7637c8ef24b1f32907cc8c2d33fab15da9314d6abdfa4c43d7bf2a376247f8b13e9bfd0b633bbd2b238f091724b683a43574f716b01de16470f  gflags-a738fdf9338412f83ab3f26f31ac11ed3f3ec4bd.tar.gz
+4a81f71cbb9877f47a1629dc3a2a9371be914208cd8efd1f4da2933015856707dd0881ccd03a35a609616a6c6646144172f49ee22dfa6a8c96bc4cab9e8ee3fc  kleidiai-45bf06030727ce049793ce6749e943cc2ea896fe.tar.gz
+929b1be42954f22e2091e0696d6175c8f30752925ce0bbe3a60a9393aff1f0afb228fa5efaf1ce26e78cd9e99294d150109e9ba9cb3243c90e9ec06cc082f74d  pytorch-2.10.0.tar.gz
+2e8fcf754d016f66c94c0e8279afff9a417ebe02604539d5369c6996665f20e1def5446abdc79dafc9f50263b3c90f989d0c3820a4d5b1e396ae4325e9f435b3  futo-swipe-LICENSE.md
+76d17063a484cc0ae2c20d2912e6ed7252d2a840355edc6273c11982b6fb92bf48017b41244d8fcb575469c7e9f291cfb756ce9706a7e49b2f427f373f57067e  honorable_sturgeon-model_fp32.pte
+e76d3f4a7a770d11e39fe1d94cad52c1c7ab1ec635cac6f66ef22456d419acd67a9a5652d79d4b49fa1903f932c4a13b6b38f7743285914552ea0e9213136191  honorable_sturgeon-metadata.json
+fc88ad2e9c244f778dc5df69c8aea16c24ea044f3bb2fa5ffeb11864ff059c789a37e3173638cf82baa1a602201ffa955b645d077c1850a4e37b07484fdd3db5  magic_macaw-model_fp32.pte
+48bdb17e8f6f6c859418bc3a5b14c0db4f10a413f3f9862381b2d03f78ae4da1a55d093da618b54a267a757ecb5b60e6ae77b8d2370f35e28b3313f3cdf24bed  magic_macaw-metadata.json
+"
