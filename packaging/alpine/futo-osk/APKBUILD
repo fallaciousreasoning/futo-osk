@@ -1,7 +1,7 @@
 # Maintainer: Jay Harris <jay.harris@outlook.co.nz>
 pkgname=futo-osk
 pkgver=0.2.0
-pkgrel=2
+pkgrel=0
 _futo_commit=7d61ab4132cfcbb7aa713190d934f0125dc38b03
 _resources_commit=d87d9dbdf3966bbe18413be375dab2f6c7bbdfdd
 pkgdesc="Phosh on-screen keyboard with FUTO Keyboard's transformer prediction, autocorrect and swipe typing"
