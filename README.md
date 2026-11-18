@@ -120,10 +120,13 @@ of FUTO Keyboard, and is not made or endorsed by FUTO.
 `engine/jni.h` is from the Android NDK (Apache-2.0). The protocol XML
 files are from wlroots (MIT).
 
+## Status
+
+Tested and working on a Pixel 6a (google-bluejay) running postmarketOS
+edge with phosh.
+
 ## Not done yet
 
-- Not yet run on the phone. Everything below the Wayland layer is tested
-  on desktop through `--test` and the harness.
 - English only. Other FUTO dictionaries and models would need per-locale
   layouts.
 - FUTO's newer neural swipe decoder (ExecuTorch `.pte` models) isn't used.
