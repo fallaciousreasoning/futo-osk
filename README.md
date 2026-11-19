@@ -9,6 +9,10 @@ FUTO's default look and layouts.
 Built for postmarketOS on the Pixel 6/6a (nura / google-bluejay), but
 nothing in it is device-specific.
 
+<p align="center">
+  <img src="docs/demo.webp" width="300" alt="Swiping &quot;Hello world&quot; into Firefox on a Pixel 6a running postmarketOS with futo-osk">
+</p>
+
 ## How it fits together
 
 ```
